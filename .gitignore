@@ -1,0 +1,27 @@
+# Build output
+wasm/build/
+wasm/prefix/
+cmake_build/
+build/
+bld*/
+CMakeFiles/
+
+# Generated browser bundle and asset packs.
+# Rebuilt by wasm/build_detached.py + wasm/pack_assets.sh; ~600MB and
+# never edited by hand.
+wasm/web/game/
+bin/
+
+# Shared asset library is an SVN checkout upstream, not git content.
+stk-assets/
+
+# Rust / node artefacts
+target/
+node_modules/
+
+# Per-branch Vercel staging
+deploy/
+deploy-monad/
+
+.DS_Store
+*.log

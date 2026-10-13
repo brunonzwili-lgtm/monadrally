@@ -1,0 +1,22 @@
+= Sol Rally =
+Solana-Powered Kart Racing
+- Version $STKVERSION$
+- Entry fees in, payouts out — 50/30/20 on Solana devnet
+- Built on SuperTuxKart, reimagined for the Solana ecosystem
+
+= Sol Rally Team =
+Design, engineering and on-chain escrow
+- Race modes: Mainnet Race, Slot Sprint, MEV Battle
+- Grand Prix settlement via Anchor escrow program
+
+= Powered By =
+Solana, Anchor, MagicBlock (planned), Emscripten and WebAssembly
+- Solana devnet for entry fees and winner payouts
+- Anchor framework for the on-chain escrow program
+- Emscripten and WebAssembly for browser play
+
+= Open Source =
+Sol Rally builds on the SuperTuxKart open-source project
+- SuperTuxKart is released under GPL 3.0
+- Its assets are released under Creative Commons and other licenses
+- Thank you to the SuperTuxKart contributors
