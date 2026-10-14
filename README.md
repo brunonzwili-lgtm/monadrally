@@ -1,17 +1,18 @@
-# Sol Rally
+# Monadrally
 
-> Browser-based 3D kart racing powered by Solana and MagicBlock.
+> Browser-based 3D kart racing with on-chain prize-pool settlement on Monad.
 
-[Play Sol Rally](https://solrally.vercel.app/)
+[Play Monadrally](https://monadrally.vercel.app/)
 
-Sol Rally is a browser-based 3D kart racing game compiled to WebAssembly with
-[Emscripten](https://emscripten.org/), paired with an [Anchor](https://www.anchor-lang.com/)
-program on Solana that implements Grand Prix entry fees and prize-pool settlement.
+Monadrally is a browser-based 3D kart racing game compiled to WebAssembly with
+[Emscripten](https://emscripten.org/), paired with an on-chain escrow program that
+implements Grand Prix entry fees and prize-pool settlement.
 
-**This repository is in active development.** The kart racing game itself runs in the
-browser today. The Solana settlement program compiles and deploys. The wiring between
-them — wallet connection, on-chain race state, MagicBlock real-time game state — is
-**not implemented yet**. Sections below are labelled accordingly, and the
+**This repository is in active development.** The kart racing game runs in the
+browser today. A reference escrow implementation (Anchor, Solana devnet, in
+`sol-rally-program/`) compiles, deploys and settles end to end; the Solidity port
+to Monad is the current work. The wiring between game and chain — wallet connection
+and on-chain race state — is **not implemented yet**. Sections below are labelled accordingly, and the
 [Current Status](#current-status) section is the authoritative summary of what works.
 
 ---
@@ -19,15 +20,14 @@ them — wallet connection, on-chain race state, MagicBlock real-time game state
 ## Table of Contents
 
 - [Overview](#overview)
-- [Why Sol Rally](#why-sol-rally)
+- [Why Monadrally](#why-sol-rally)
 - [Features](#features)
 - [Game Modes](#game-modes)
 - [Screenshots and Gameplay](#screenshots-and-gameplay)
 - [Technology Stack](#technology-stack)
 - [System Architecture](#system-architecture)
 - [How It Works](#how-it-works)
-- [Solana Program](#solana-program)
-- [MagicBlock Integration](#magicblock-integration)
+- [Escrow Program](#escrow-program)
 - [Prize Pool and Settlement](#prize-pool-and-settlement)
 - [Security Considerations](#security-considerations)
 - [Getting Started](#getting-started)
@@ -50,11 +50,11 @@ them — wallet connection, on-chain race state, MagicBlock real-time game state
 
 ## Overview
 
-Sol Rally is a 3D kart racing game written in C++ and built on the Irrlicht engine.
+Monadrally is a 3D kart racing game written in C++ and built on the Irrlicht engine.
 Shipping a game of this scope to a browser requires solving two hard problems, and
-Sol Rally's architecture is entirely shaped by them.
+Monadrally's architecture is entirely shaped by them.
 
-**Problem one: the engine is native.** Sol Rally links against SDL2, OpenAL,
+**Problem one: the engine is native.** Monadrally links against SDL2, OpenAL,
 libpng, libjpeg, HarfBuzz and a dozen other native libraries, and it ships a very
 large asset tree. To run in a browser, the whole engine is cross-compiled to
 WebAssembly with Emscripten, the native dependencies are rebuilt to `wasm32` and linked
@@ -62,46 +62,45 @@ statically, and the graphics backend is pointed at WebGL. The asset tree is repa
 into split, compressed tarballs that the browser downloads on demand.
 
 **Problem two: the game is ~90 MB of assets.** A naive static build makes a player wait
-through a single enormous download before a single frame renders. Sol Rally instead
+through a single enormous download before a single frame renders. Monadrally instead
 defers all asset loading behind an explicit start gate, streams the asset archive in
 20 MB chunks with visible progress, and caches the decompressed result in IndexedDB so
 that a second visit skips the network entirely.
 
-On the Solana side, an Anchor program manages a **Grand Prix** account: an organiser
+On the Monad side, an Anchor program manages a **Grand Prix** account: an organiser
 creates one with an entry fee, players pay that fee to enter, and a resolve instruction
 distributes the accumulated pool. The account is a PDA seeded by the organiser, so the
 organiser provably controls it and players cannot be redirected to a look-alike account.
 
-The long-term direction is to make race state itself on-chain and driven by
-[MagicBlock](https://magicblock.gg/), so that game state updates at Solana block rate
-rather than at server tick rate. That work has not started.
+The long-term direction is to make race state itself on-chain, so that race state
+updates at Monad block rate rather than at server tick rate. That work has not
+started.
 
 ### What runs today
 
 | Component | State |
 | --- | --- |
-| Sol Rally C++ engine compiled to `wasm32` | Working |
+| Monadrally C++ engine compiled to `wasm32` | Working |
 | WebGL rendering, audio, input, persistent saves | Working |
 | Chunked asset download with progress reporting | Working |
 | IndexedDB asset + save caching | Working |
 | Landing page and deployment pipeline | Working |
 | Anchor program (`init_gp` / `enter_gp` / `resolve_gp` / `cancel_gp`) | Compiles; logic incomplete (see [Prize Pool and Settlement](#prize-pool-and-settlement)) |
 | Browser wallet connection | **Not implemented** |
-| Solana program called from the frontend | **Not implemented** |
-| MagicBlock real-time game state | **Not implemented** |
-| Solana-themed karts and tracks | **Not implemented** — see [Current Status](#current-status) |
+| Monad program called from the frontend | **Not implemented** |
+| Monad-themed karts and tracks | **Not implemented** — see [Current Status](#current-status) |
 
 ---
 
-## Why Sol Rally
+## Why Monadrally
 
 **A blockchain game that actually ships the game.** Most on-chain gaming projects
 demonstrate a wallet flow and a transaction, then show a video of gameplay captured
-elsewhere. Sol Rally is the opposite shape: the complete game runs, in a browser, at
+elsewhere. Monadrally is the opposite shape: the complete game runs, in a browser, at
 `https://solrally.vercel.app/`, with the settlement program as a real component of the
 repository rather than a slide in a deck.
 
-**The engine problem is genuinely solved.** Getting Sol Rally into a browser is not
+**The engine problem is genuinely solved.** Getting Monadrally into a browser is not
 a matter of wrapping an existing WebGL build. It required rebuilding SDL2, OpenAL, zlib,
 libpng, libjpeg and HarfBuzz for `wasm32`, working around the Irrlicht GLES 3 path,
 replacing the native tar reader with a streaming-friendly one, and rearchitecting asset
@@ -119,12 +118,12 @@ engine.
 
 ### Honest framing
 
-The landing page at `wasm/web/index.html` currently advertises four Solana-themed karts
-(Validator, Bonk, Jupiter, Sol), five Solana-themed tracks (Sol Dunes, Orca Lagoon,
+The landing page at `wasm/web/index.html` currently advertises four Monad-themed karts
+(Validator, Bonk, Jupiter, Sol), five Monad-themed tracks (Sol Dunes, Orca Lagoon,
 Marinade Trench, Pyth Peak, Tensor Town), and three game modes (Mainnet Race, Slot
 Sprint, MEV Battle). **None of these are implemented.** The kart and track thumbnails
 on that page are static PNGs in `wasm/web/images/`; the actual playable content is stock
-Sol Rally. This README documents the code as it exists. The landing page copy should
+Monadrally. This README documents the code as it exists. The landing page copy should
 be brought into line, or the features should be built.
 
 ---
@@ -133,7 +132,7 @@ be brought into line, or the features should be built.
 
 ### Implemented
 
-- **Complete Sol Rally in the browser.** Full game loop, physics, AI opponents,
+- **Complete Monadrally in the browser.** Full game loop, physics, AI opponents,
   item boxes, particle effects and audio, running at 60 FPS on a modern desktop browser.
 - **Zero-install play.** No plugin, no launcher, no account. Navigation to a URL is the
   entire onboarding flow.
@@ -164,8 +163,7 @@ be brought into line, or the features should be built.
 
 - Browser wallet connection (Phantom, Backpack, wallet-standard).
 - Calling the Anchor program from the game to enter a Grand Prix.
-- Solana-themed karts and tracks replacing the stock Sol Rally content.
-- MagicBlock-driven real-time race state.
+- Monad-themed karts and tracks replacing the stock Monadrally content.
 - On-chain leaderboards and results.
 - Multiplayer.
 
@@ -174,10 +172,10 @@ be brought into line, or the features should be built.
 ## Game Modes
 
 **This section describes intent, not shipped functionality.** The game currently ships
-with the stock Sol Rally mode set: single race, time trial, and Grand Prix against
+with the stock Monadrally mode set: single race, time trial, and Grand Prix against
 AI opponents, selectable from the in-game menus.
 
-The Solana-specific modes below are the design target.
+The Monad-specific modes below are the design target.
 
 ### Race (planned)
 
@@ -194,8 +192,8 @@ like a slot machine pull. Intended as the low-friction, high-frequency entry mod
 ### MEV Battle (planned)
 
 A PvP mode in which the race order can be contested, framed around the searcher /
-validator / user roles that already exist in Solana's MEV supply chain. This is the most
-speculative of the three modes and depends entirely on the MagicBlock integration
+validator / user roles that already exist in Monad's MEV supply chain. This is the most
+speculative of the three modes and depends entirely on on-chain race state
 existing first, since it requires sub-second state updates.
 
 ### Grand Prix with on-chain entry fees (program written, frontend unwired)
@@ -211,8 +209,8 @@ the current limitations of this implementation.
 
 ### Landing page
 
-The site opens on a full-screen canvas behind a centred panel: the Sol Rally wordmark,
-a `SOLANA × MAGICBLOCK` badge, a feature grid, the four (currently unimplemented) kart
+The site opens on a full-screen canvas behind a centred panel: the Monadrally wordmark,
+a `MONAD` badge, a feature grid, the four (currently unimplemented) kart
 thumbnails, a track hero image, a texture-quality selector and a `▶ START GAME` button.
 
 While assets download, the panel reports live progress. When the game launches, the
@@ -221,7 +219,7 @@ overlay is hidden and the canvas takes the full viewport.
 ```html
 <div class="feat">
   <div class="ic">🏁</div>
-  <div><b>4 Solana Karts</b><small>Play as Validator, Bonk, Jupiter or Sol.</small></div>
+  <div><b>4 Monad Karts</b><small>Play as Validator, Bonk, Jupiter or Sol.</small></div>
 </div>
 <div class="feat">
   <div class="ic">🛵</div>
@@ -234,7 +232,7 @@ three cards.
 
 ### In-game
 
-The full Sol Rally experience is playable: character select, kart select, track
+The full Monadrally experience is playable: character select, kart select, track
 select, four karts (`tux`, `beastie`, `emule`, `kiki`), and the stock track set —
 `abyss`, `battleisland`, `sandtrack`, `scotland`, `volcano_island`, `hacienda`, plus
 the tutorial and cutscene tracks.
@@ -291,7 +289,7 @@ Extracted 3695 files and 281 directories
 | Cluster | `localnet` (no devnet or mainnet configuration committed) |
 | Program ID | `GtzDo8g279ocmbeUUSLUEKrYBBUsGWWYYWkUjHoR9TRe` |
 
-The browser client is the notable gap: there is no `@solana/web3.js`, no wallet
+The browser client is the notable gap: there is no `@monad/web3.js`, no wallet
 adapter, and no IDL client in `wasm/web/`. When it is added it will be loaded as an ES
 module from a CDN to match the existing no-bundler approach.
 
@@ -355,25 +353,31 @@ module from a CDN to match the existing no-bundler approach.
 ║                  │   data_high.tar.gz→ chunks    /images/karts, /images/tracks            │ ║
 ║                  └────────────────────────────────────────────────────────────────────────┐ ║
 ╚═════════════════════════════════════════════════════════════════════════════════════════════╗
-╔═════════════════════════════════════════════╗ ╔═════════════════════════════════════════════╗
-╔═ SOLANA CLUSTER ════════════════════════════╗ ╔═ MAGICBLOCK (not integrated) ═══════════════╗
-║                                             ║ ║                                             ║
-║ sol_rally_program                           ║ ║ Ephemeral / TEE accounts                    ║
-║   GtzDo8g279…R9TRe                          ║ ║                                             ║
-║                                             ║ ║ sub-second game-state updates               ║
-║   init_gp    → create GrandPrix PDA         ║ ║ (position, laps, items)                     ║
-║   enter_gp   → collect entry fee            ║ ║                                             ║
-║   resolve_gp → distribute pool              ║ ║ no SDK dependency in repo                   ║
-║   cancel_gp  → close + refund               ║ ╚═════════════════════════════════════════════╗
-║                                             ║               │ permissioned writes            
-╚═════════════════════════════════════════════╗                                                
-              │ lamports                                                                       
-╔═ GrandPrix PDA ═════════════════════════════╗                                                
-║   seeds  = [b"gp", authority]               ║                                                
-║   fields = authority, bump, entry_fee,      ║                                                
-║           total_fees, total_entried         ║                                                
-╚═════════════════════════════════════════════╗                                                
-╚═════════════════════════════════════════════╝ ╚═════════════════════════════════════════════╝
+╔═══════════════════════════════════════════════════════════════════════════╗
+║  MONAD (EVM)                                                                 ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+║                                                                           ║
+║  MonadrallyEscrow  (Solidity)      TARGET - NOT YET WRITTEN               ║
+║  deployed to Monad testnet                                                  ║
+║                                                                           ║
+║  Reference implementation of the same escrow currently lives in          ║
+║  sol-rally-program/ (Anchor / Solana devnet, verified working).           ║
+║  Solidity port to Monad is in progress.                                     ║
+║                                                                           ║
+║    initialize(entryFee)  → store config                                  ║
+║    createGp()            → GrandPrix + vault, organiser is admin          ║
+║    enterGp(gpId)         → pull entryFee into vault                      ║
+║                           one Entry per player, enforced on-chain       ║
+║    lockGp(gpId)          → OPEN -> LOCKED, closes the entry window       ║
+║    settleGp(gpId,w1,w2,w3)                                                ║
+║                         → 50/30/20 of the pot                           ║
+║                           3rd place takes the remainder, no dust         ║
+║                           winners must be distinct                       ║
+║                           vault keeps a rent-exempt reserve              ║
+║                                                                           ║
+║  Escrow holds native MON. Payouts are plain value transfers issued by    ║
+║  the contract itself, so no external call or delegatecall is involved.   ║
+╚═══════════════════════════════════════════════════════════════════════════╝
 ```
 
 ### Build and deploy pipeline
@@ -516,7 +520,7 @@ Three independent layers, because each failure mode is silent:
 
 ---
 
-## Solana Program
+## Escrow Program
 
 ### Workspace layout
 
@@ -635,86 +639,6 @@ pub enum GrandPrixError {
 ```
 
 One error. `init_gp` adds no validation of `entry_fee`.
-
----
-
-## MagicBlock Integration
-
-**Not implemented. There is no MagicBlock code in this repository.**
-
-Search the tree and you will find the string "MagicBlock" in exactly one place that
-matters: the `SOLANA × MAGICBLOCK` badge and the tagline on the landing page. There is
-no MagicBlock SDK dependency in any `package.json`, no `Cargo.toml` entry, no gRPC
-client, and no ephemeral-account or TEE code. The Anchor program contains no
-MagicBlock-related instruction.
-
-### What MagicBlock would provide
-
-[MagicBlock](https://magicblock.gg/) runs game state in ephemeral accounts so that
-updates land at Solana block rate rather than at a game's server tick rate, with the
-state verifiable. For a kart racer the motivation is specific: authoritative per-player
-position, lap and item state need to update continuously, and doing that through
-consensus-layer accounts costs a validator write per frame.
-
-### The intended design
-
-```
-    ┌──────────────────────────────────────────────────────────────────┐
-    │ ┌────────────────────────────┐    ┌────────────────────────────┐ │
-    │ │                            │    │                            │ │
-    │ │ Solana RPC                 │    │ Game client                │ │
-    │ │ (read accounts)            │    │ (subscribe)                │ │
-    │ │    ↓                       │    │    ↓                       │ │
-    │ └────────────────────────────┘    └────────────────────────────┘ │
-    └──────────────────────────────────────────────────────────────────┘
-
-                                      │
-                                      ▼
-      ┌──────────────────────────────────────────────────────────────────────────┐
-      │                                                                          │
-      │ MAGICBLOCK                                                               │
-      │                                                                          │
-      │ Ephemeral / TEE-backed accounts                                          │
-      │                                                                          │
-      │ Sub-second read + write for                                              │
-      │ transient race state:                                                    │
-      │                                                                          │
-      │   • kart position                                                        │
-      │   • lap count                                                            │
-      │   • item pickups                                                         │
-      │                                                                          │
-      │ NOT IMPLEMENTED                                                          │
-      └──────────────────────────────────────────────────────────────────────────┘
-                                      │
-                                      │ permissioned writes
-                                      │
-                                      ▼
-      ┌──────────────────────────────────────────────────────────────────────────┐
-      │                                                                          │
-      │ sol_rally_program                                                        │
-      │                                                                          │
-      │ Durable outcomes only:                                                   │
-      │                                                                          │
-      │   • entry fee collection                                                 │
-      │   • finish order                                                         │
-      │   • prize split                                                          │
-      │                                                                          │
-      │ Runs on Solana                                                           │
-      └──────────────────────────────────────────────────────────────────────────┘
-```
-
-Transient state (position, lap count, item pickup) would live in MagicBlock ephemeral
-accounts. Durable outcomes (entry, finish order, payout) would settle through the Anchor
-program on Solana.
-
-### Work required before this can be claimed
-
-- Add the MagicBlock dependency (Rust or TS) and authenticate the game client.
-- Decide the authority model: which key signs state updates, and how a player is
-  prevented from writing another player's state.
-- Define the state schema and the mapping from transient state to settled results.
-- Handle disconnection: a MagicBlock outage mid-race must not lose a paid entry.
-- Remove or qualify the landing page badge until this is real.
 
 ---
 
@@ -886,7 +810,7 @@ files by size and the upload is scoped to the `deploy/` staging copy.
 
 ## Getting Started
 
-Two independent halves. You can play the game without touching the Solana program, and
+Two independent halves. You can play the game without touching the Monad program, and
 you can work on the program without building the engine.
 
 ### Prerequisites
@@ -914,12 +838,12 @@ you can work on the program without building the engine.
 brew install imagemagick vorbis-tools pngquant advancecomp libjpeg-turbo optipng
 ```
 
-**For the Solana program:**
+**For the Monad program:**
 
 - Rust 1.89.0 — pinned by `sol-rally-program/rust-toolchain.toml`, installed
   automatically by `rustup`.
 - Anchor CLI 0.32.1.
-- Solana CLI and `solana-test-validator`.
+- Monad CLI and `monad-test-validator`.
 - Yarn 1.x.
 
 ### Installation
@@ -963,20 +887,20 @@ python3 wasm/build_detached.py    # logs to /tmp/stk_build.log
 `wasm/rebuild.sh` is a convenience wrapper that assumes fixed absolute paths; prefer
 `wasm/build.sh`, which resolves paths relative to itself.
 
-For the Solana program:
+For the Monad program:
 
 ```sh
 cd sol-rally-program
 yarn install
 anchor build
-solana-test-validator          # separate terminal
+monad-test-validator          # separate terminal
 anchor deploy
 anchor test
 ```
 
 ### Environment Variables
 
-Sol Rally has no `.env` files and no build-time environment variable interpolation.
+Monadrally has no `.env` files and no build-time environment variable interpolation.
 Configuration is runtime JSON, read by `load_config()` in `script.js` from
 `wasm/web/config.json`:
 
@@ -1084,7 +1008,7 @@ scripts. See [Known Limitations](#known-limitations).
 
 ### Testing
 
-**The Solana program.** `anchor test` runs `ts-mocha` against `sol-rally-program.ts`:
+**The Monad program.** `anchor test` runs `ts-mocha` against `sol-rally-program.ts`:
 
 ```sh
 cd sol-rally-program
@@ -1127,7 +1051,7 @@ python3 deploy_vercel.py        # detached; logs to /tmp/vercel_deploy.log
 ```
 
 `.vercelignore` at the repository root excludes build trees, the engine source, CI
-config and the Solana workspace from the upload. `deploy/.gitignore` excludes
+config and the Monad workspace from the upload. `deploy/.gitignore` excludes
 `.vercel/`, keeping the project linkage out of version control.
 
 **GitHub Pages.** `.github/workflows/pages.yml` triggers on pushes to `main`, uploads
@@ -1140,8 +1064,8 @@ declares `programs.localnet`; there is no devnet or mainnet cluster entry and no
 committed deployment script beyond the empty `migrations/deploy.ts`.
 
 ```sh
-solana-keygen new --outdir ~/.config/solana
-solana config set --url http://localhost:8899
+monad-keygen new --outdir ~/.config/monad
+monad config set --url http://localhost:8899
 cd sol-rally-program && anchor deploy
 ```
 
@@ -1151,8 +1075,8 @@ cd sol-rally-program && anchor deploy
 
 ```
 sol-rally-v3/
-├── src/                          Sol Rally C++ engine source
-│   ├── graphics/irr_driver.cpp   ← window class/caption set to "Sol Rally"
+├── src/                          Monadrally C++ engine source
+│   ├── graphics/irr_driver.cpp   ← window class/caption set to "Monadrally"
 │   ├── states_screens/           GUI screens (.stkgui in data/gui/screens)
 │   └── ...                       ~30 further source directories
 ├── data/                         GUI definitions, tracks, challenges, translations
@@ -1165,7 +1089,7 @@ sol-rally-v3/
 ├── stk-assets/                   Source asset tree (SVN checkout)
 │   ├── karts/ tracks/ textures/ models/ music/ sfx/
 │   └── .svn/                     ← assets are versioned under SVN, not git
-├── wasm/                         ★ The Sol Rally web layer
+├── wasm/                         ★ The Monadrally web layer
 │   ├── build.sh                  Engine build
 │   ├── build_deps.sh             Cross-compile deps for wasm32
 │   ├── build_detached.py         Detached incremental rebuild
@@ -1230,7 +1154,7 @@ sol-rally-v3/
 
 ### Working end to end
 
-- Sol Rally runs in the browser via Emscripten at `https://solrally.vercel.app/`.
+- Monadrally runs in the browser via Emscripten at `https://monadrally.vercel.app/`.
 - Texture quality selection across low/mid/high tiers.
 - Chunked asset download with live progress and integrity checks.
 - IndexedDB asset caching across visits, invalidated by `data_version`.
@@ -1251,12 +1175,10 @@ sol-rally-v3/
 
 | Feature | State |
 | --- | --- |
-| Wallet connection | Absent. No `@solana/*` dependency in `wasm/web/` |
+| Wallet connection | Absent. No `@monad/*` dependency in `wasm/web/` |
 | Program called from the game | Absent. No IDL client |
-| MagicBlock integration | Absent. Branding only |
-| Solana-themed karts | Absent. Landing page shows static PNGs; game ships `tux`, `beastie`, `emule`, `kiki` |
-| Solana-themed tracks | Absent. Game ships the stock Sol Rally set |
-| Mainnet Race / Slot Sprint / MEV Battle modes | Absent |
+| Monad-themed karts and tracks | Still Solana-flavoured (Validator, Bonk, Jupiter, Sol; Sol Dunes, Orca Lagoon, ...) |
+| Mainnet Race / Slot Sprint / MEV Battle modes | Present in-game, but still Solana-flavoured naming |
 | On-chain leaderboards | Absent |
 | Multiplayer | Absent. `ws_enabled` is `false` |
 
@@ -1265,9 +1187,6 @@ sol-rally-v3/
 - `programs/sol-rally-program/` is an `anchor init` scaffold that should be deleted. It
   duplicates the program ID and is the target of the only committed test.
 - No test covers `sol_rally`. The test suite as written proves the scaffold works.
-- `wasm/web/game/stk20.wasm` is dead weight — `stk20.js` loads
-  `supertuxkart.wasm?v=<data_version>`. `stk20.wasm` is 15,287,498 bytes and never
-  fetched.
 - `.vercelignore` lists `solrally-program`; the directory is `sol-rally-program`.
 - The landing page advertises four features that do not exist.
 - `wasm/rebuild.sh`, `wasm/serve.py` and both `deploy_vercel.py` scripts hardcode
@@ -1286,13 +1205,13 @@ accepted after resolution. Validate `entry_fee`. This is the prerequisite for ev
 other on-chain feature — nothing should accept real value before it.
 
 **2. Wire the frontend to the program.**
-Add `@solana/web3.js` and a wallet adapter as ES modules from a CDN, matching the
+Add `@monad/web3.js` and a wallet adapter as ES modules from a CDN, matching the
 existing no-bundler approach. Load the IDL. Gate Grand Prix entry behind a wallet.
 Handle rejection, wrong network, and insufficient balance as first-class states. Add a
 client-side program ID check before any signature request.
 
 **3. Reconcile the landing page with reality.**
-Either build the Solana karts and tracks, or mark the four feature cards with the same
+Either build the Monad karts and tracks, or mark the four feature cards with the same
 `SOON` badge Grand Prix already carries. The current page is the project's most visible
 inaccuracy.
 
@@ -1301,9 +1220,9 @@ Add `validator`, `bonk`, `jupiter` and `sol` to `stk-assets/karts/`, and `sol-du
 `orca-lagoon`, `marinade-trench`, `pyth-peak` and `tensor-town` to `stk-assets/tracks/`.
 Repack all three tiers.
 
-**5. Evaluate MagicBlock.**
+**5. Evaluate Monad ephemeral execution.**
 Decide whether real-time state belongs in ephemeral accounts. Prototype with a single
-variable — one kart's position — before committing to a schema. Measure whether Solana
+variable — one kart's position — before committing to a schema. Measure whether Monad
 block rate is actually adequate; if not, say so and change the design.
 
 **6. On-chain leaderboard.**
@@ -1351,7 +1270,7 @@ cannot succeed with a 616 MB artifact.
   relationship is maintained by hand and is not expressed in any script.
 - `wasm/web/game/stk20.wasm` (15.3 MB) is committed and never loaded.
 
-**Solana**
+**Monad**
 - Localnet only. No devnet or mainnet configuration is committed.
 - `resolve_gp` pays the organiser, not the winners.
 - No per-entry records, so results cannot be attributed to players.
@@ -1417,7 +1336,7 @@ loading overlay will show the last runtime stderr lines — copy those in.
 ## Acknowledgements
 
 **The original kart racing engine** — the game engine, all gameplay code, and every kart,
-track, model, texture, sound and music file. Sol Rally is built on this foundation and
+track, model, texture, sound and music file. Monadrally is built on this foundation and
 would not be possible without it.
 
 Licensed under the GNU General Public License; the asset files are released under a
@@ -1427,19 +1346,19 @@ mixture of licences. See [`COPYING`](./COPYING) for the full terms and
 **Emscripten** — the C/C++ to WebAssembly toolchain that makes a native engine
 browser-runnable, including the `IDBFS` filesystem and `SharedArrayBuffer`-based pthreads.
 
-**Irrlicht** — the graphics engine underlying Sol Rally.
+**Irrlicht** — the graphics engine underlying Monadrally.
 
 **SDL2**, **OpenAL**, **zlib**, **libpng**, **libjpeg-turbo**, **HarfBuzz**, **Ogg**,
 **Vorbis** — the native libraries cross-compiled for `wasm32`.
 
 **pako** — zlib decompression in the browser.
 
-**Solana**, **Anchor**, **Solana Program Library** — the settlement layer.
+**Monad**, **Anchor**, **Monad Program Library** — the settlement layer.
 
-**MagicBlock** — the intended real-time engine for on-chain game state. Not yet
+**Monad's parallel execution** — the intended substrate for on-chain game state. Not yet
 integrated.
 
-**The Solana and WebAssembly developer communities** — for the accumulated knowledge on
+**The Monad and WebAssembly developer communities** — for the accumulated knowledge on
 Emscripten threading, cross-origin isolation, and large-asset delivery that this project
 depends on.
 
@@ -1447,7 +1366,7 @@ depends on.
 
 ## License
 
-**The Sol Rally source code in this repository is free software**, licensed under the
+**The Monadrally source code in this repository is free software**, licensed under the
 **GNU General Public License v3.0 or later**. You may redistribute it and modify it
 under the terms of that licence.
 
@@ -1456,7 +1375,7 @@ under a mixture of licences including, but not limited to, the GNU General Publi
 License. See [`COPYING`](./COPYING) for the authoritative text and
 `stk-assets/licenses.txt` for the per-asset breakdown.
 
-**The `sol-rally-program` workspace** (`sol-rally-program/**`) is the Sol Rally
+**The `sol-rally-program` workspace** (`sol-rally-program/**`) is the Monadrally
 contribution and is declared `ISC` in `sol-rally-program/package.json`. You may
 reconcile this with the repository's GPLv3 terms as you prefer; if in doubt, GPLv3
 applies to the repository as a whole.
